@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CricPulse | Intelligent Sports Analytics Platform</title>
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Transform raw cricket data into engaging, actionable insights, momentum graphs, real-time match predictions, 10-year multi-format player comparisons, and fantasy squad guides.">
+  
+  <!-- Premium Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Local CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Header & Master Search -->
+  <header class="app-header">
+    <div class="logo">
+      <i class="fa-solid fa-chart-line logo-icon"></i>
+      <h1>Cric<span>Pulse</span></h1>
+    </div>
+    
+    <!-- Master Search Bar [Statement 10] -->
+    <div class="search-container">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="masterSearchInput" placeholder="Search players, matches (live/past), upcoming, scores..." autocomplete="off">
+        <button id="searchClearBtn" class="clear-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <!-- Autocomplete Dropdown overlay -->
+      <div id="searchDropdown" class="search-dropdown hidden">
+        <!-- Results will be injected dynamically -->
+      </div>
+    </div>
+    
+    <div class="live-indicator-wrapper">
+      <span class="live-dot pulse"></span>
+      <span class="live-label">LIVE MATCH SIMULATOR</span>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="app-nav">
+    <button class="nav-tab active" data-tab="match-center"><i class="fa-solid fa-satellite-dish"></i> Match Center</button>
+    <button class="nav-tab" data-tab="prediction-contest"><i class="fa-solid fa-trophy"></i> Prediction Competition</button>
+    <button class="nav-tab" data-tab="player-comparison"><i class="fa-solid fa-scale-balanced"></i> Player Comparison</button>
+    <button class="nav-tab" data-tab="career-trends"><i class="fa-solid fa-timeline"></i> Multi-Format Careers</button>
+    <button class="nav-tab" data-tab="team-discovery"><i class="fa-solid fa-compass"></i> Long-Term Discovery</button>
+    <button class="nav-tab" data-tab="fantasy-guide"><i class="fa-solid fa-wand-magic-sparkles"></i> Fantasy Advisor</button>
+  </nav>
+
+  <!-- Main Content Grid -->
+  <main class="app-content">
+    
+    <!-- Tab 1: Match Center (Live Simulator) -->
+    <section id="match-center" class="tab-content active">
+      
+      <!-- Match Data Source Selector [Statement 5/10] -->
+      <div class="card source-selector-card" style="margin-bottom: 1.5rem;">
+        <div class="panel-header" style="margin-bottom: 0.75rem; padding-bottom: 0.5rem;">
+          <h3><i class="fa-solid fa-satellite"></i> Live Match Data Source</h3>
+        </div>
+        <div class="source-options-row" style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+          <button id="srcSimBtn" class="btn btn-primary active-src" style="padding: 0.5rem 1rem;"><i class="fa-solid fa-circle-play"></i> Simulated IPL Final (RCB vs GT)</button>
+          <button id="srcRssBtn" class="btn btn-secondary" style="padding: 0.5rem 1rem;"><i class="fa-solid fa-square-rss"></i> Real ESPNcricinfo Live RSS</button>
+          <button id="srcCustomBtn" class="btn btn-secondary" style="padding: 0.5rem 1rem;"><i class="fa-solid fa-keyboard"></i> Custom Score Editor</button>
+        </div>
+        
+        <!-- Live RSS dropdown (hidden by default) -->
+        <div id="rssSourceContainer" class="source-sub-container hidden" style="background: rgba(15, 23, 42, 0.4); padding: 1rem; border-radius: 8px; margin-top: 0.75rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 0.4rem;">
+            <label for="rssMatchesSelect" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Active Live Match List (CORS Proxy):</label>
+            <select id="rssMatchesSelect" class="form-input" style="width: 100%;">
+              <option value="">-- Fetching Live Matches from ESPNcricinfo... --</option>
+            </select>
+          </div>
+          <button id="rssRefreshBtn" class="btn btn-secondary" style="padding: 0.6rem 1rem; margin-top: 1.2rem;"><i class="fa-solid fa-rotate"></i> Refresh Feed</button>
+        </div>
+
+        <!-- Custom Match score entry (hidden by default) -->
+        <div id="customSourceContainer" class="source-sub-container hidden" style="background: rgba(15, 23, 42, 0.4); padding: 1rem; border-radius: 8px; margin-top: 0.75rem;">
+          <form id="customScoreForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; align-items: flex-end;">
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Match Title (e.g. IND vs ENG)</label>
+              <input type="text" id="custTitle" class="form-input" value="IND vs ENG" required>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Target to Win</label>
+              <input type="number" id="custTarget" class="form-input" value="180" min="1" required>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Chasing Team Runs</label>
+              <input type="number" id="custRuns" class="form-input" value="120" min="0" required>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Wickets Down</label>
+              <input type="number" id="custWickets" class="form-input" value="4" min="0" max="10" required>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Overs Bowled (e.g. 14.2)</label>
+              <input type="number" step="0.1" id="custOvers" class="form-input" value="14.2" min="0" max="50" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1rem;"><i class="fa-solid fa-check"></i> Apply Score</button>
+          </form>
+        </div>
+      </div>
+      
+      <div class="match-center-layout">
+        
+        <!-- Scoreboard & Controls Panel -->
+        <div class="card panel scoreboard-panel">
+          <div class="panel-header">
+            <h3>Live Scoreboard</h3>
+            <span class="badge badge-danger">Live Chase</span>
+          </div>
+          <div class="live-score-display">
+            <h2 id="liveTeams">RCB vs GT</h2>
+            <div class="score-numbers">
+              <span id="liveScore" class="current-score">0/0</span>
+              <span class="overs-indicator">(<span id="liveOvers">0.0</span> overs)</span>
+            </div>
+            <p id="matchTarget" class="target-text">Target: 193 | Need 193 runs off 120 balls</p>
+          </div>
+          
+          <div class="batsman-bowler-grid">
+            <div class="actor-card">
+              <span class="label">Striker</span>
+              <p id="liveBatsman" class="value">Virat Kohli</p>
+            </div>
+            <div class="actor-card">
+              <span class="label">Bowler</span>
+              <p id="liveBowler" class="value">Mohammed Shami</p>
+            </div>
+          </div>
+
+          <!-- Simulation Speed controls -->
+          <div class="sim-controls">
+            <button id="simStepBtn" class="btn btn-secondary"><i class="fa-solid fa-forward-step"></i> Next Ball</button>
+            <button id="simPlayBtn" class="btn btn-primary"><i class="fa-solid fa-play"></i> Play Simulation</button>
+            <button id="simResetBtn" class="btn btn-danger"><i class="fa-solid fa-rotate-left"></i> Reset Match</button>
+          </div>
+          
+          <div class="commentary-box">
+            <h4>Live Commentary</h4>
+            <div id="commentaryText" class="commentary-content">Match is ready to start. Click 'Next Ball' or 'Play Simulation' to begin the chase.</div>
+          </div>
+        </div>
+        
+        <!-- Win Probability & Momentum Charts -->
+        <div class="card panel charts-panel">
+          <div class="panel-header">
+            <h3>Real-Time Prediction & Momentum</h3>
+            <div class="win-prob-header-container">
+              <span class="badge badge-success">RCB <span id="winProbINDText">50%</span></span>
+              <span class="badge badge-secondary">GT <span id="winProbAUSText">50%</span></span>
+            </div>
+          </div>
+          
+          <!-- Win Probability Bar / Graph -->
+          <div class="win-prob-bar-container">
+            <div id="winProbBarIND" class="win-prob-fill ind-fill" style="width: 50%;"></div>
+            <div id="winProbBarAUS" class="win-prob-fill aus-fill" style="width: 50%;"></div>
+          </div>
+          
+          <div class="chart-container">
+            <canvas id="momentumChart"></canvas>
+          </div>
+          <div class="chart-footer">
+            <p><i class="fa-solid fa-circle-info"></i> The line represents RCB's win probability after each ball. Spikes represent boundaries and drops represent wickets.</p>
+          </div>
+        </div>
+        
+        <!-- Predictions & Insights Panel -->
+        <div class="card panel insights-panel">
+          <div class="panel-header">
+            <h3>Real-Time Insights & Projections</h3>
+          </div>
+          
+          <div class="stat-highlights">
+            <div class="highlight-item">
+              <span class="label">Projected Score</span>
+              <h4 id="projectedScoreText">-</h4>
+            </div>
+            <div class="highlight-item">
+              <span class="label">Required Rate</span>
+              <h4 id="requiredRateText">8.95 rpo</h4>
+            </div>
+          </div>
+
+          <div class="insights-alert-container">
+            <h4>Actionable Insights [Statement 1]</h4>
+            <div id="insightsList">
+              <!-- Insights will load dynamically -->
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- Tab 2: Prediction Competition -->
+    <section id="prediction-contest" class="tab-content">
+      <div class="prediction-contest-layout">
+        
+        <!-- Questionnaire Card -->
+        <div class="card panel question-panel">
+          <div class="panel-header">
+            <h3>Active Prediction Questions [Statement 7]</h3>
+            <span class="badge badge-info">Submit predictions before simulating</span>
+          </div>
+          
+          <form id="predictionsForm" class="predictions-form">
+            <div class="prediction-card">
+              <p class="question-text">1. What will be RCB's final score at the end of the chase?</p>
+              <div class="options-group">
+                <label class="option-label"><input type="radio" name="pq_q1" value="Under 185" required> Under 185</label>
+                <label class="option-label"><input type="radio" name="pq_q1" value="185 to 192"> 185 to 192</label>
+                <label class="option-label"><input type="radio" name="pq_q1" value="193 or more" checked> 193 or more</label>
+              </div>
+            </div>
+
+            <div class="prediction-card">
+              <p class="question-text">2. Will Virat Kohli score more than 50 runs?</p>
+              <div class="options-group">
+                <label class="option-label"><input type="radio" name="pq_q2" value="Yes" checked required> Yes</label>
+                <label class="option-label"><input type="radio" name="pq_q2" value="No"> No</label>
+              </div>
+            </div>
+
+            <div class="prediction-card">
+              <p class="question-text">3. Will Rashid Khan take 2 or more wickets?</p>
+              <div class="options-group">
+                <label class="option-label"><input type="radio" name="pq_q3" value="Yes" checked required> Yes</label>
+                <label class="option-label"><input type="radio" name="pq_q3" value="No"> No</label>
+              </div>
+            </div>
+
+            <div class="prediction-card">
+              <p class="question-text">4. Will RCB score 50 or more runs in the Powerplay (first 6 overs)?</p>
+              <div class="options-group">
+                <label class="option-label"><input type="radio" name="pq_q4" value="Yes" checked required> Yes</label>
+                <label class="option-label"><input type="radio" name="pq_q4" value="No"> No</label>
+              </div>
+            </div>
+
+            <div class="prediction-card">
+              <p class="question-text">5. Who will win the match?</p>
+              <div class="options-group">
+                <label class="option-label"><input type="radio" name="pq_q5" value="RCB" checked required> RCB</label>
+                <label class="option-label"><input type="radio" name="pq_q5" value="Gujarat Titans"> Gujarat Titans</label>
+              </div>
+            </div>
+            
+            <button type="submit" id="submitPredictionsBtn" class="btn btn-primary btn-block"><i class="fa-solid fa-paper-plane"></i> Lock Predictions</button>
+          </form>
+          <div id="predictionsLockedMsg" class="alert alert-success hidden">
+            <i class="fa-solid fa-lock"></i> Predictions Locked! Run the Live Simulation in 'Match Center' to watch points compile in real-time.
+          </div>
+        </div>
+
+        <!-- Leaderboard Card -->
+        <div class="card panel leaderboard-panel">
+          <div class="panel-header">
+            <h3>Live Competitor Leaderboard</h3>
+            <span class="badge badge-success">Live Score update</span>
+          </div>
+          <p class="section-desc">Compete with other users. Answers are graded as events occur in the live simulation match.</p>
+          
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>User Name</th>
+                <th>Previous Pts</th>
+                <th>Graded Pts</th>
+                <th>Total Score</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+
+          <div class="grading-panel">
+            <h4>Live Grading Tracker</h4>
+            <div id="gradingStatsGrid" class="grading-grid">
+              <div class="grade-status-card">
+                <span>Q1 Status:</span>
+                <p id="gradeQ1">-</p>
+              </div>
+              <div class="grade-status-card">
+                <span>Q2 (Kohli Runs):</span>
+                <p id="gradeQ2">0 runs</p>
+              </div>
+              <div class="grade-status-card">
+                <span>Q3 (Rashid Wickets):</span>
+                <p id="gradeQ3">0 wkts</p>
+              </div>
+              <div class="grade-status-card">
+                <span>Q4 (PP Score 50+):</span>
+                <p id="gradeQ4">-</p>
+              </div>
+              <div class="grade-status-card">
+                <span>Q5 (Winner):</span>
+                <p id="gradeQ5">-</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Tab 3: Player & Team Comparison -->
+    <section id="player-comparison" class="tab-content">
+      <div class="comparison-layout">
+        
+        <!-- Selection header -->
+        <div class="card selector-card flex-between">
+          <div class="selector-item">
+            <label for="comparePlayerA">Select Player A</label>
+            <select id="comparePlayerA" class="form-input">
+              <!-- Options loaded dynamically -->
+            </select>
+          </div>
+          <div class="vs-badge">VS</div>
+          <div class="selector-item">
+            <label for="comparePlayerB">Select Player B</label>
+            <select id="comparePlayerB" class="form-input">
+              <!-- Options loaded dynamically -->
+            </select>
+          </div>
+          <div class="selector-item">
+            <label for="compareFormat">Format</label>
+            <select id="compareFormat" class="form-input">
+              <option value="t20">T20 Internationals</option>
+              <option value="fifty">50-50 format (ODI)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Radar Comparison Chart -->
+        <div class="comparison-details-grid">
+          
+          <div class="card panel">
+            <div class="panel-header">
+              <h3>Radar Overview [Statement 3]</h3>
+            </div>
+            <div class="radar-chart-wrapper">
+              <canvas id="comparisonRadarChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Home vs Outside Turf comparison -->
+          <div class="card panel">
+            <div class="panel-header">
+              <h3>Home Turf vs. Outside Turf [Statement 9]</h3>
+            </div>
+            <div class="bar-chart-wrapper">
+              <canvas id="turfBarChart"></canvas>
+            </div>
+            
+            <div class="turf-stats-comparison-grid">
+              <div class="turf-stat-card">
+                <h5 id="turfPlayerAName">Player A</h5>
+                <p>Home Avg: <span id="turfPlayerAHomeAvg" class="value">-</span></p>
+                <p>Outside Avg: <span id="turfPlayerAOutsideAvg" class="value">-</span></p>
+              </div>
+              <div class="turf-stat-card">
+                <h5 id="turfPlayerBName">Player B</h5>
+                <p>Home Avg: <span id="turfPlayerBHomeAvg" class="value">-</span></p>
+                <p>Outside Avg: <span id="turfPlayerBOutsideAvg" class="value">-</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- Tab 4: Multi-Format Career Analyzer -->
+    <section id="career-trends" class="tab-content">
+      <div class="career-trends-layout">
+        
+        <div class="card selector-card flex-between">
+          <div class="selector-item">
+            <label for="trendPlayer">Select Player Profile</label>
+            <select id="trendPlayer" class="form-input">
+              <!-- Loaded dynamically -->
+            </select>
+          </div>
+          <div class="selector-item">
+            <label for="trendFormat">Format</label>
+            <select id="trendFormat" class="form-input">
+              <option value="t20">T20 Internationals</option>
+              <option value="fifty">50-50 format (ODI)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card panel full-width-panel">
+          <div class="panel-header">
+            <h3>10-Year Career Trend Matrix (2017 - 2026) [Statement 8]</h3>
+          </div>
+          <div class="large-chart-container">
+            <canvas id="careerLineChart"></canvas>
+          </div>
+          
+          <div class="career-stat-metrics-row">
+            <div class="metric-block">
+              <span class="label">Total Career Runs</span>
+              <h2 id="careerTotalRuns">-</h2>
+            </div>
+            <div class="metric-block">
+              <span class="label">Total Career Wickets</span>
+              <h2 id="careerTotalWickets">-</h2>
+            </div>
+            <div class="metric-block">
+              <span class="label">Average Strike Rate</span>
+              <h2 id="careerAvgSR">-</h2>
+            </div>
+            <div class="metric-block">
+              <span class="label">Career High Average</span>
+              <h2 id="careerMaxAvg">-</h2>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- Tab 5: Long-Term Discovery -->
+    <section id="team-discovery" class="tab-content">
+      <div class="discovery-layout">
+        
+        <!-- Team Streaks and Records -->
+        <div class="card panel">
+          <div class="panel-header">
+            <h3>Historical Head-to-Head Records [Statement 4]</h3>
+          </div>
+          <div class="discovery-overview-row">
+            <div class="stat-bubble">
+              <span class="label">RCB vs GT Head-To-Head</span>
+              <h1>8 Matches</h1>
+            </div>
+            <div class="stat-bubble">
+              <span class="label">RCB Win Streak</span>
+              <h1 class="color-success">1 Win (Live)</h1>
+            </div>
+            <div class="stat-bubble">
+              <span class="label">Last 5 Match Results</span>
+              <h1>W L W L W</h1>
+            </div>
+          </div>
+
+          <div class="historical-scores-list">
+            <h4>Past Match Scores</h4>
+            <div id="pastScoresList" class="past-scores-grid">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Automated discoveries -->
+        <div class="card panel">
+          <div class="panel-header">
+            <h3>AI Discovery Notes & Streaks</h3>
+          </div>
+          <div id="discoveryNotesList" class="discovery-notes-container">
+            <!-- Dynamic notes loaded here -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Tab 6: Fantasy Advisor -->
+    <section id="fantasy-guide" class="tab-content">
+      <div class="fantasy-layout">
+        
+        <!-- Squad selector & core team -->
+        <div class="card panel squad-panel">
+          <div class="panel-header">
+            <h3>Data-Driven Fantasy XI Optimizer [Statement 6]</h3>
+            <span class="badge badge-success">Optimized Score</span>
+          </div>
+          <p class="section-desc">Algorithmically selects the best performing fantasy squad based on form rating, safety index, and credit budget constraint.</p>
+          
+          <div class="captains-recommendation-row">
+            <!-- Captain recommendations generated in JS -->
+            <div class="captain-pick-card captain">
+              <div class="pick-badge">C</div>
+              <div class="pick-details">
+                <h4 id="fantasyCaptainName">-</h4>
+                <p id="fantasyCaptainDesc">Loading recommendations...</p>
+              </div>
+            </div>
+            <div class="captain-pick-card vice-captain">
+              <div class="pick-badge">VC</div>
+              <div class="pick-details">
+                <h4 id="fantasyVCName">-</h4>
+                <p id="fantasyVCDesc">Loading recommendations...</p>
+              </div>
+            </div>
+          </div>
+
+          <h4>Recommended Top Core Squad</h4>
+          <div id="fantasySquadList" class="fantasy-squad-grid">
+            <!-- Dynamic core cards -->
+          </div>
+        </div>
+
+        <!-- Full pricing and efficiency details -->
+        <div class="card panel fantasy-table-panel">
+          <div class="panel-header">
+            <h3>Player Value-For-Money Rankings</h3>
+          </div>
+          
+          <table class="fantasy-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Team</th>
+                <th>Role</th>
+                <th>Price (Cr)</th>
+                <th>Form (10)</th>
+                <th>Safety (10)</th>
+                <th>Fantasy Value Index</th>
+              </tr>
+            </thead>
+            <tbody id="fantasyTableBody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>&copy; 2026 CricPulse Analytics. Built using vanilla JS and CSS custom modules. Real-time simulated models running locally.</p>
+  </footer>
+
+  <!-- App Logic -->
+  <script src="data.js"></script>
+  <script src="analytics.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
